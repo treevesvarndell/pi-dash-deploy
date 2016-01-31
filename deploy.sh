@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ansible-playbook playbooks/install.yaml -i hosts.yaml
+ansible-playbook site.yaml -i hosts/pi

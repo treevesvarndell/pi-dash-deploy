@@ -1,0 +1,38 @@
+---
+- name: Deploy and run dashboard server
+  hosts: pi
+
+  tasks:
+    - name: Get pip
+      easy_install: name=pip state=latest
+    - name: Get virtualenv
+      easy_install: name=virtualenv state=latest
+    - name: Install bower using npm
+      npm: name=bower path={{ deploy_dir }}/dashboard/
+
+    - name: Kill existing process on port
+      shell: fuser -k -TERM -n tcp 8080
+      ignore_errors: yes
+
+    - name: Remove deploy directory
+      file: path={{ deploy_dir }}/ state=absent
+
+    - name: Create deploy directory
+      file: path={{ deploy_dir }}/ state=directory owner=pi group=pi mode=u+rwx
+
+    - name: Get latest version of dashboard
+      git: repo=https://github.com/treevesvarndell/dashboard.git dest={{ deploy_dir }}/dashboard clone=yes
+
+    - name: Manually create the initial virtualenv
+      command: virtualenv {{ deploy_dir }}/dashboard/venv -p python2.7 creates="{{ deploy_dir }}/dashboard/venv"
+
+    - name: Install requirements
+      pip:
+        requirements={{ deploy_dir }}/dashboard/requirements.txt
+        virtualenv={{ deploy_dir }}/dashboard/venv
+
+    - name: Install bower packages
+      command: venv/bin/python manage.py bower install chdir={{ deploy_dir }}/dashboard/
+
+    - name: Run server
+      shell: nohup venv/bin/python manage.py runserver 0.0.0.0:{{ port }} chdir={{ deploy_dir }}/dashboard/ &
