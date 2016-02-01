@@ -1,5 +1,5 @@
 ---
-- name: Deploy and run dashboard server
+- name: Deploy and run Pi Dash server
   hosts: pi
 
   tasks:
@@ -11,7 +11,7 @@
       npm: name=bower path={{ deploy_dir }}/dashboard/
 
     - name: Kill existing process on port
-      shell: fuser -k -TERM -n tcp 8080
+      shell: fuser -k -TERM -n tcp {{ port }}
       ignore_errors: yes
 
     - name: Remove deploy directory
