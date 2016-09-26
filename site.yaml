@@ -1,38 +1,42 @@
 ---
 - name: Deploy and run Pi Dash server
   hosts: pi
-
   tasks:
-    - name: Get pip
-      easy_install: name=pip state=latest
     - name: Get virtualenv
-      easy_install: name=virtualenv state=latest
+      easy_install: name=virtualenv
+    - name: Get pip
+      easy_install: name=pip
     - name: Install bower using npm
-      npm: name=bower path={{ deploy_dir }}/dashboard/
+      npm: name=bower path={{ dashboard_dir }}
 
-    - name: Kill existing process on port
-      shell: fuser -k -TERM -n tcp {{ port }}
-      ignore_errors: yes
+    - name: Stop existing server
+      supervisorctl: name=dashboard state=stopped config={{ dashboard_dir }}/supervisord.conf supervisorctl_path=/usr/local/bin/supervisorctl
 
     - name: Remove deploy directory
-      file: path={{ deploy_dir }}/ state=absent
+      file: path={{ deploy_dir }} state=absent
 
     - name: Create deploy directory
-      file: path={{ deploy_dir }}/ state=directory owner=pi group=pi mode=u+rwx
+      file: path={{ deploy_dir }} state=directory owner=pi group=pi mode=u+rwx
 
     - name: Get latest version of dashboard
-      git: repo=https://github.com/treevesvarndell/dashboard.git dest={{ deploy_dir }}/dashboard clone=yes
+      git: repo=https://github.com/treevesvarndell/dashboard.git dest={{ dashboard_dir }} clone=yes
 
     - name: Manually create the initial virtualenv
-      command: virtualenv {{ deploy_dir }}/dashboard/venv -p python2.7 creates="{{ deploy_dir }}/dashboard/venv"
+      command: virtualenv {{ dashboard_dir }}/venv -p python2.7 creates="{{ dashboard_dir }}/venv"
 
     - name: Install requirements
       pip:
-        requirements={{ deploy_dir }}/dashboard/requirements.txt
-        virtualenv={{ deploy_dir }}/dashboard/venv
+        requirements={{ dashboard_dir }}/requirements.txt
+        virtualenv={{ dashboard_dir }}/venv
 
     - name: Install bower packages
-      command: venv/bin/python manage.py bower install chdir={{ deploy_dir }}/dashboard/
+      command: venv/bin/python manage.py bower install chdir={{ dashboard_dir }}
 
-    - name: Run server
-      shell: nohup venv/bin/python manage.py runserver 0.0.0.0:{{ port }} chdir={{ deploy_dir }}/dashboard/ &
+    - name: Copy run script
+      copy: src=roles/supervisor/run.sh dest={{ dashboard_dir }}/run.sh owner=pi group=pi mode="u=rwx,g=rx,o=r"
+
+    - name: Copy supervisor config
+      copy: src=roles/supervisor/supervisord.conf dest={{ dashboard_dir }}/supervisord.conf owner=pi group=pi mode="u=rw,g=r,o=r"
+
+    - name: Restart server using supervisor
+      supervisorctl: name=dashboard state=restarted config={{ dashboard_dir }}/supervisord.conf

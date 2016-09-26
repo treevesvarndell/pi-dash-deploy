@@ -1,2 +1,7 @@
 [pi]
-192.168.1.50  ansible_connection=ssh  ansible_user=pi
+192.168.1.50  ansible_ssh_user=pi
+
+[pi:vars]
+deploy_dir="/home/pi/deploy"
+dashboard_dir="{{ deploy_dir }}/dashboard"
+port=8080
