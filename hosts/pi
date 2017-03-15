@@ -4,4 +4,4 @@
 [pi:vars]
 deploy_dir=/home/pi/deploy
 dashboard_dir={{ deploy_dir }}/dashboard
-port=8080
+port=8000
